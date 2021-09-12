@@ -1,8 +1,7 @@
 <template>
   <div class='district_style'>
         <h1 v-if="district.properties" class="font-bold">
-            <i class="fas fa-city"></i>
-            {{district.properties.TOWNNAME}}
+            <p><i class="fas fa-city"></i>{{district.properties.TOWNNAME}}</p>
             <p>人口數量: {{getSinglePopulation }}</p>
             <p>佔桃園市人口比例: {{  getPercentage(getSinglePopulation, getTotalPopulation) }}%</p>
             <p>最高人口比例: {{  getPercentage(max_Population, getTotalPopulation) }}%</p>
