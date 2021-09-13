@@ -60,6 +60,7 @@ export default {
     let shoppingAreaGroup = L.markerClusterGroup(); // 商圈群組
     let bikingAreaGroup = L.markerClusterGroup(); // 自行車群組
     let viewAreaGroup = L.markerClusterGroup(); // 景點群組
+    let foodAreaGroup = L.markerClusterGroup(); // 特色美食群組
     var map = null;
 
     onMounted(async() => {
@@ -99,6 +100,7 @@ export default {
             '商圈': shoppingAreaGroup,
             '自行車': bikingAreaGroup,
             '景點': viewAreaGroup,
+            '特色美食': foodAreaGroup,
         }
 
         L.control.layers(baseLayers, overlays, {
@@ -110,7 +112,7 @@ export default {
         // getGeoJSONTiles(map.getBounds(), map.getZoom(), markSpaceId, dataHubReadToken, markFeatureGroup)
 
         view_Area.value = Taoyuan_view.infos;
-        view_Area.value.forEach((item)=>{
+        Taoyuan_view.infos.forEach((item)=>{
                 L.marker([item.Py, item.Px],{
                     icon: L.icon.fontAwesome({ 
                         iconClasses: 'fa fa-suitcase-rolling', // you _could_ add other icon classes, not tested.
@@ -121,12 +123,20 @@ export default {
                     })
                 }).bindPopup(`
                     <h1 class = 'text-xl font-bold w-full bg-info'>${item.Name}</h1>
+                    <a class = 'text-base' href="${item.TYWebsite}" target="_blank">網站連結</a>
+                    <p class = 'text-base font-bold w-full bg-info'>地址: ${item.Add}</p>
+                    <p class = 'text-base font-bold w-full bg-info'>開放時間: ${item.Opentime}</p>
+                    <p class = 'text-base font-bold w-full bg-info'>停車資訊: ${item.Parkinginfo}</p>
+                    <p class = 'text-base font-bold w-full bg-info'>票價資訊: ${item.Ticketinfo}</p>
+                    <p class = 'text-base font-bold w-full bg-info'>連絡電話: ${item.Tel}</p>
+                    <p class = 'text-base font-bold w-full bg-info'>備註: ${item.Remarks}</p>
                 `).addTo(viewAreaGroup);
             });
             viewAreaGroup.addTo(map);
-
     });
 
+    
+    // 人口數
     const getPopulation = () =>{
         axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
         // axios.get('http://127.0.0.1:8000/api/population')
@@ -137,6 +147,31 @@ export default {
                 console.log('error=' + err);
         })
     }
+
+    // 特色推薦美食
+    axios.get('https://arcane-citadel-34528.herokuapp.com/api/food_recommend')
+    // axios.get('http://127.0.0.1:8000/api/food_recommend')
+            .then(response => {
+                response.data.data.forEach((item)=>{
+                    L.marker([item.latitude, item.longitude],{
+                    icon: L.icon.fontAwesome({ 
+                        iconClasses: 'fa fa-utensils', // you _could_ add other icon classes, not tested.
+                        markerColor: '#fff',
+                        iconColor: 'purple',
+                        // use XY offsets to nudge positioning of icons, negative accepted
+                        iconYOffset: 0,
+                        })
+                    }).bindPopup(`
+                        <h1 class = 'text-xl font-bold w-full bg-info'>${item.name}</h1>
+                        <h1 class = 'text-xl font-bold w-full bg-info'>${item.phone}</h1>
+                        <h1 class = 'text-xl font-bold w-full bg-info'>${item.address}</h1>
+                    `).addTo(foodAreaGroup);
+                })
+                // foodAreaGroup.addTo(map);
+            })
+            .catch( err => {
+                console.log('error=' + err);
+        })
 
      window.openDialog = (header, content)=>{
          is_Dialog.value = true;
@@ -167,7 +202,7 @@ export default {
                     </div>
                 `).addTo(shoppingAreaGroup);
             });
-            shoppingAreaGroup.addTo(map);
+            // shoppingAreaGroup.addTo(map);
         })
         .catch( err => {
             console.log('error=' + err);
@@ -203,12 +238,14 @@ export default {
                         weight: 3,
                         fill: true,
                     },
+                    // 移動的顏色
                     onEachFeature(feature, layer) {
                         layer.on("mouseover", function () {
                             show_district.value = true;
                             district.value = feature;
                             this.setStyle({
-                                fillColor: "#ff0000",
+                                fillColor: "#40407a",
+                                // fillColor: "#ff0000",
                             });
                         });
                         layer.on("mouseout", function () {
