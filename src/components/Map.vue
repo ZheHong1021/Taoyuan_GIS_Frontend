@@ -1,48 +1,21 @@
 <template>
   <div class="relative text-xl">
+    <!-- Dialog -->
     <Dialog :header="dialog_Info.header" v-model:visible="is_Dialog"  :breakpoints="{'960px': '75vw', '640px': '100vw'}" :style="{width: '50vw'}" >
         <p v-html="dialog_Info.body"></p>
     </Dialog>
 
+    <!-- 區界 -->
     <DistrictPopup 
         :district="district"
         :population="population"
         v-show="show_district" 
         class="absolute px-4 py-2 rounded bg-white left-16 top-3"
     />
-        <div class="absolute px-4 py-2 rounded bg-white bottom-3 left-3" style='z-index: 1002'>
-            <div class="mb-4">
-                <h1 class="text-lg font-bold">鄉鎮區界線(人口數)</h1>
-                <hr class="border-1 mb-2">
-                <div id='district_block' class="flex">
-                    <div class="w-4 h-4 border-2 my-1" style="background-color: #ff3838;"></div>
-                    <label class="text-base mx-2" >  &gt; 400000</label>
-                </div>
-                <div id='district_block' class="flex">
-                    <div class="w-4 h-4 border-2 my-1" style="background-color: #3742fa;"></div>
-                    <label class="text-base mx-2" >  &gt; 200000</label>
-                </div>
-                <div id='district_block' class="flex">
-                    <div class="w-4 h-4 border-2 my-1" style="background-color: #fff200;"></div>
-                    <label class="text-base mx-2" >  &gt; 100000</label>
-                </div>
-                <div id='district_block' class="flex">
-                    <div class="w-4 h-4 border-2 my-1" style="background-color: #c56cf0;"></div>
-                    <label class="text-base mx-2" >  &gt; 50000</label>
-                </div>
-                <div id='district_block' class="flex">
-                    <div class="w-4 h-4 border-2 my-1" style="background-color: #7efff5;"></div>
-                    <label class="text-base mx-2"> 50000以下 </label>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>marker
-                <hr class="border-1 mb-2">
-                <p class="text-base"><i class="fas fa-shopping-bag"></i> 商圈</p>
-            </div>
-        </div>
-    
+    <!-- 圖例 -->
+    <Legend />
+        
+    <!-- 地圖 -->
     <div id="map" class="z-0"></div>
   </div>
 </template>
@@ -52,10 +25,12 @@ import L from "leaflet";
 import axios from 'axios';
 import { onMounted, reactive, ref } from "vue";
 import DistrictPopup from "@/components/DistrictPopup";
+import Legend from "@/components/Legend";
 import 'leaflet.markercluster';
 import 'leaflet-fontawesome-markers'
 import "leaflet-fontawesome-markers/L.Icon.FontAwesome.css"
 import Dialog from 'primevue/dialog';
+import webActivity from '@/assets/WebActivity.json';
 
 
 export default {
@@ -63,6 +38,7 @@ export default {
   components: {
     DistrictPopup: DistrictPopup,
     Dialog: Dialog,
+    Legend: Legend,
   },
   setup() {
     const show_district = ref(false);
@@ -78,12 +54,13 @@ export default {
     var hereApiKey = "qcwHTsJura1qAf9AT75Nvl5DoolyvxQdAJmu-1wGTWQ"; // 您的 HERE APIKEY
     var dataHubReadToken = "APa7WWjkRhGKor_kt7QPQQA"; // 您的 Data Hub Token
     var distrcitSpaceId = "5b0dSwmn"; // 鄉鎮區界 Space ID
-    var markSpaceId = "jISwvF36"; // 桃園市座標點 Space ID
+    // var markSpaceId = "jISwvF36"; // 桃園市座標點 Space ID
     var markFeatureGroup = L.markerClusterGroup(); // 座標點群組
     let shoppingAreaGroup = L.markerClusterGroup(); // 商圈群組
     var map = null;
 
     onMounted(() => {
+        console.log(webActivity);
 
       map = L.map("map"); // 建立 L.map 物件。
       map.setView([24.926199764623497, 121.43325805664064], 10); // 設定地圖位置與 Z 階層，並讀取地圖
@@ -126,11 +103,12 @@ export default {
         
         
         readDistrict(map); // 讀取鄉鎮區界線
-        getGeoJSONTiles(map.getBounds(), map.getZoom(), markSpaceId, dataHubReadToken, markFeatureGroup)
+        // getGeoJSONTiles(map.getBounds(), map.getZoom(), markSpaceId, dataHubReadToken, markFeatureGroup)
     });
 
     
-    axios.get('http://127.0.0.1:8000/api/population')
+    axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
+    // axios.get('http://127.0.0.1:8000/api/population')
         .then(response => {
             population.value = response.data.data;
         })
@@ -258,7 +236,7 @@ export default {
 
 
     return { show_district, district, population, shopping_Area, is_Dialog, dialog_Info,
-        getSinglePopulation };
+        getSinglePopulation, getGeoJSONTiles };
   }
 };
 </script>
