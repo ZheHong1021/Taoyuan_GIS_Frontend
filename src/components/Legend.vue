@@ -1,7 +1,7 @@
 <template>
     <div class="absolute px-4 py-2 rounded bg-white bottom-3 left-3" style='z-index: 1002'>
             <div class="mb-4">
-                <h1 class="text-lg font-bold">鄉鎮區界線(人口數)</h1>
+                <h1 class="text-lg font-bold"><i class="fas fa-child text-xl text-yellow-400 mr-2"></i>鄉鎮區界線(人口數)</h1>
                 <hr class="border-2 mb-2">
 
                 <div id="district_block" class="flex" v-for="(item, index) in lengend_Style" :key="index">

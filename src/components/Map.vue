@@ -30,7 +30,7 @@ import 'leaflet.markercluster';
 import 'leaflet-fontawesome-markers'
 import "leaflet-fontawesome-markers/L.Icon.FontAwesome.css"
 import Dialog from 'primevue/dialog';
-import webActivity from '@/assets/WebActivity.json';
+import Taoyuan_view from '@/assets/Taoyuan_view.json';
 
 
 export default {
@@ -45,6 +45,7 @@ export default {
     const district = ref([]);
     const population = ref([]);
     const shopping_Area = ref([]);
+    const view_Area = ref([]);
     const is_Dialog = ref(false);
     const dialog_Info = reactive({
         header: '',
@@ -57,10 +58,11 @@ export default {
     // var markSpaceId = "jISwvF36"; // 桃園市座標點 Space ID
     var markFeatureGroup = L.markerClusterGroup(); // 座標點群組
     let shoppingAreaGroup = L.markerClusterGroup(); // 商圈群組
+    let bikingAreaGroup = L.markerClusterGroup(); // 自行車群組
+    let viewAreaGroup = L.markerClusterGroup(); // 景點群組
     var map = null;
 
-    onMounted(() => {
-        console.log(webActivity);
+    onMounted(async() => {
 
       map = L.map("map"); // 建立 L.map 物件。
       map.setView([24.926199764623497, 121.43325805664064], 10); // 設定地圖位置與 Z 階層，並讀取地圖
@@ -95,26 +97,46 @@ export default {
         var overlays = {
             '圖資資訊座標': markFeatureGroup,
             '商圈': shoppingAreaGroup,
+            '自行車': bikingAreaGroup,
+            '景點': viewAreaGroup,
         }
 
         L.control.layers(baseLayers, overlays, {
             collapsed: false
         }).addTo(map);        
         
-        
-        readDistrict(map); // 讀取鄉鎮區界線
+        await getPopulation();
+        await readDistrict(map); // 讀取鄉鎮區界線
         // getGeoJSONTiles(map.getBounds(), map.getZoom(), markSpaceId, dataHubReadToken, markFeatureGroup)
+
+        view_Area.value = Taoyuan_view.infos;
+        view_Area.value.forEach((item)=>{
+                L.marker([item.Py, item.Px],{
+                    icon: L.icon.fontAwesome({ 
+                        iconClasses: 'fa fa-suitcase-rolling', // you _could_ add other icon classes, not tested.
+                        markerColor: '#273c75',
+                        iconColor: '#ffffff',
+                        // use XY offsets to nudge positioning of icons, negative accepted
+                        iconYOffset: 0,
+                    })
+                }).bindPopup(`
+                    <h1 class = 'text-xl font-bold w-full bg-info'>${item.Name}</h1>
+                `).addTo(viewAreaGroup);
+            });
+            viewAreaGroup.addTo(map);
+
     });
 
-    
-    axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
-    // axios.get('http://127.0.0.1:8000/api/population')
-        .then(response => {
-            population.value = response.data.data;
+    const getPopulation = () =>{
+        axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
+        // axios.get('http://127.0.0.1:8000/api/population')
+            .then(response => {
+                population.value = response.data.data;
+            })
+            .catch( err => {
+                console.log('error=' + err);
         })
-        .catch( err => {
-            console.log('error=' + err);
-    })
+    }
 
      window.openDialog = (header, content)=>{
          is_Dialog.value = true;
@@ -152,12 +174,10 @@ export default {
         })
 
 
-
-
-
     // 單一鄉鎮區總人口
     // 抓取到的第一個就是我們目前選擇的district，因為抓回來是Object，讀取total
     const getSinglePopulation = (single_district)=>  population.value.length >0 ? population.value.filter( element =>element.district == single_district)[0].total : 0;
+    
     const readDistrict = (map)=>{
         $.getJSON(
         `https://xyz.api.here.com/hub/spaces/${distrcitSpaceId}/iterate?clip=true&access_token=${dataHubReadToken}`,
@@ -198,16 +218,12 @@ export default {
                                 fillColor: bg_color,
                             });
                         });
-                        // layer.on("click", function(){
-                            
-                        // });
                     },
                 }).addTo(map);
             });
             }
         );
     }
-
 
     function getGeoJSONTiles(bounds, zoom, spaceId, accessToken) {
       var min = map.project(bounds.getNorthWest(), zoom).divideBy(256).floor(),
@@ -235,8 +251,7 @@ export default {
         }
     }
 
-
-    return { show_district, district, population, shopping_Area, is_Dialog, dialog_Info,
+    return { show_district, district, population, shopping_Area, is_Dialog, dialog_Info, view_Area,
         getSinglePopulation, getGeoJSONTiles };
   }
 };
