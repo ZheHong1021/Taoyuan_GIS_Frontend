@@ -122,7 +122,8 @@ export default {
         dialog_Info.body = content;
     };// 解決字串模板@click無效的問題
 
-    axios.get('http://127.0.0.1:8000/api/shopping')
+    axios.get('https://arcane-citadel-34528.herokuapp.com/api/shopping')
+    // axios.get('http://127.0.0.1:8000/api/shopping')
         .then(response => {
             shopping_Area.value = response.data.data;
             shopping_Area.value.forEach((area)=>{
