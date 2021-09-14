@@ -1,9 +1,32 @@
 <template>
   <div class="relative text-xl">
     <!-- Dialog -->
-    <Dialog :header="dialog_Info.header" v-model:visible="is_Dialog"  :breakpoints="{'960px': '75vw', '640px': '100vw'}" :style="{width: '50vw'}" >
+    <Dialog :header="dialog_Info.header" v-model:visible="is_View_Dialog"  :breakpoints="{'960px': '75vw', '640px': '100vw'}" :style="{width: '50vw'}" >
         <p v-html="dialog_Info.body"></p>
     </Dialog>
+
+    <Dialog header="110年桃園觀光景點旅客數據" v-model:visible="is_Tourism_Dialog"  :breakpoints="{'960px': '75vw', '640px': '100vw'}" :style="{width: '50vw'}">
+        <div class="mb-2">
+            <button class="mx-2 bg-red-400 rounded px-4 py-2 text-white" @click="tourism_prop.month = '七月'">七月</button>
+            <button class="mx-2 bg-red-400 rounded px-4 py-2 text-white" @click="tourism_prop.month = '六月'">六月</button>
+            <button class="mx-2 bg-red-400 rounded px-4 py-2 text-white" @click="tourism_prop.month = '五月'">五月</button>
+            <button class="mx-2 bg-red-400 rounded px-4 py-2 text-white" @click="tourism_prop.month = '四月'">四月</button>
+        </div>
+        <div class="mb-2">
+            <button class="mx-2 bg-green-400 rounded px-4 py-2 text-white" @click="tourism_prop.type = 'bar'; tourism_prop.data = '門票收入';">門票收入</button>
+            <button class="mx-2 bg-blue-400 rounded px-4 py-2 text-white" @click="tourism_prop.type = 'line'; tourism_prop.data = '遊客人次';">遊客人次</button>
+        </div>
+         <TourismData :tourism_prop="tourism_prop"/>
+    </Dialog>
+
+    <div class="absolute top-3 right-36" style='z-index: 1003'>
+        <button class="text-white text-xl font-bold rounded px-4 py-2"
+            :class="is_Tourism_Dialog ? 'bg-green-700' : 'bg-green-500'"
+            @click="is_Tourism_Dialog = true">
+            觀光景點旅客數據
+        </button>
+    </div>
+
 
     <!-- 區界 -->
     <DistrictPopup 
@@ -17,6 +40,8 @@
         
     <!-- 地圖 -->
     <div id="map" class="z-0"></div>
+
+
   </div>
 </template>
 
@@ -26,11 +51,13 @@ import axios from 'axios';
 import { onMounted, reactive, ref } from "vue";
 import DistrictPopup from "@/components/DistrictPopup";
 import Legend from "@/components/Legend";
+import TourismData from "@/components/TourismData";
 import 'leaflet.markercluster';
 import 'leaflet-fontawesome-markers'
 import "leaflet-fontawesome-markers/L.Icon.FontAwesome.css"
 import Dialog from 'primevue/dialog';
 import Taoyuan_view from '@/assets/Taoyuan_view.json';
+
 
 
 export default {
@@ -39,14 +66,21 @@ export default {
     DistrictPopup: DistrictPopup,
     Dialog: Dialog,
     Legend: Legend,
+    TourismData: TourismData,
   },
   setup() {
+    const tourism_prop = reactive({
+        type: 'bar',
+        data: '門票收入',
+        month: '七月',
+    });
+    
     const show_district = ref(false);
     const district = ref([]);
     const population = ref([]);
     const shopping_Area = ref([]);
-    const view_Area = ref([]);
-    const is_Dialog = ref(false);
+    const is_View_Dialog = ref(false);
+    const is_Tourism_Dialog = ref(false);
     const dialog_Info = reactive({
         header: '',
         body: '',
@@ -58,10 +92,11 @@ export default {
     // var markSpaceId = "jISwvF36"; // 桃園市座標點 Space ID
     var markFeatureGroup = L.markerClusterGroup(); // 座標點群組
     let shoppingAreaGroup = L.markerClusterGroup(); // 商圈群組
-    let bikingAreaGroup = L.markerClusterGroup(); // 自行車群組
     let viewAreaGroup = L.markerClusterGroup(); // 景點群組
     let foodAreaGroup = L.markerClusterGroup(); // 特色美食群組
     var map = null;
+
+
 
     onMounted(async() => {
 
@@ -96,9 +131,8 @@ export default {
         };
 
         var overlays = {
-            '圖資資訊座標': markFeatureGroup,
+            // '圖資資訊座標': markFeatureGroup,
             '商圈': shoppingAreaGroup,
-            '自行車': bikingAreaGroup,
             '景點': viewAreaGroup,
             '特色美食': foodAreaGroup,
         }
@@ -108,32 +142,38 @@ export default {
         }).addTo(map);        
         
         await getPopulation();
+        await getView();
         await readDistrict(map); // 讀取鄉鎮區界線
         // getGeoJSONTiles(map.getBounds(), map.getZoom(), markSpaceId, dataHubReadToken, markFeatureGroup)
 
-        view_Area.value = Taoyuan_view.infos;
-        Taoyuan_view.infos.forEach((item)=>{
-                L.marker([item.Py, item.Px],{
-                    icon: L.icon.fontAwesome({ 
-                        iconClasses: 'fa fa-suitcase-rolling', // you _could_ add other icon classes, not tested.
-                        markerColor: '#273c75',
-                        iconColor: '#ffffff',
-                        // use XY offsets to nudge positioning of icons, negative accepted
-                        iconYOffset: 0,
-                    })
-                }).bindPopup(`
-                    <h1 class = 'text-xl font-bold w-full bg-info'>${item.Name}</h1>
-                    <a class = 'text-base' href="${item.TYWebsite}" target="_blank">網站連結</a>
-                    <p class = 'text-base font-bold w-full bg-info'>地址: ${item.Add}</p>
-                    <p class = 'text-base font-bold w-full bg-info'>開放時間: ${item.Opentime}</p>
-                    <p class = 'text-base font-bold w-full bg-info'>停車資訊: ${item.Parkinginfo}</p>
-                    <p class = 'text-base font-bold w-full bg-info'>票價資訊: ${item.Ticketinfo}</p>
-                    <p class = 'text-base font-bold w-full bg-info'>連絡電話: ${item.Tel}</p>
-                    <p class = 'text-base font-bold w-full bg-info'>備註: ${item.Remarks}</p>
-                `).addTo(viewAreaGroup);
-            });
-            viewAreaGroup.addTo(map);
     });
+
+
+    // 景點
+    const getView = ()=>{
+        Taoyuan_view.infos.forEach((item)=>{
+            L.marker([item.Py, item.Px],{
+                icon: L.icon.fontAwesome({ 
+                    iconClasses: 'fa fa-suitcase-rolling', // you _could_ add other icon classes, not tested.
+                    markerColor: '#273c75',
+                    iconColor: '#ffffff',
+                    // use XY offsets to nudge positioning of icons, negative accepted
+                    iconYOffset: 0,
+                })
+            }).bindPopup(`
+                <h1 class = 'text-xl font-bold w-full bg-info'>${item.Name}</h1>
+                <a class = 'text-base' href="${item.TYWebsite}" target="_blank">網站連結</a>
+                <p class = 'text-base font-bold w-full bg-info'>地址: ${item.Add}</p>
+                <p class = 'text-base font-bold w-full bg-info'>開放時間: ${item.Opentime}</p>
+                <p class = 'text-base font-bold w-full bg-info'>停車資訊: ${item.Parkinginfo}</p>
+                <p class = 'text-base font-bold w-full bg-info'>票價資訊: ${item.Ticketinfo}</p>
+                <p class = 'text-base font-bold w-full bg-info'>連絡電話: ${item.Tel}</p>
+                <p class = 'text-base font-bold w-full bg-info'>備註: ${item.Remarks}</p>
+            `).addTo(viewAreaGroup);
+        });
+        viewAreaGroup.addTo(map);
+    }
+
 
     
     // 人口數
@@ -158,23 +198,23 @@ export default {
                         iconClasses: 'fa fa-utensils', // you _could_ add other icon classes, not tested.
                         markerColor: '#fff',
                         iconColor: 'purple',
-                        // use XY offsets to nudge positioning of icons, negative accepted
                         iconYOffset: 0,
                         })
                     }).bindPopup(`
                         <h1 class = 'text-xl font-bold w-full bg-info'>${item.name}</h1>
-                        <h1 class = 'text-xl font-bold w-full bg-info'>${item.phone}</h1>
-                        <h1 class = 'text-xl font-bold w-full bg-info'>${item.address}</h1>
+                        <p class = 'text-base font-bold w-full bg-info'>${item.phone}</p>
+                        <p class = 'text-base font-bold w-full bg-info'>${item.address}</p>
                     `).addTo(foodAreaGroup);
                 })
-                // foodAreaGroup.addTo(map);
             })
             .catch( err => {
                 console.log('error=' + err);
         })
 
+
+
      window.openDialog = (header, content)=>{
-         is_Dialog.value = true;
+         is_View_Dialog.value = true;
         dialog_Info.header = header;
         dialog_Info.body = content;
     };// 解決字串模板@click無效的問題
@@ -202,7 +242,6 @@ export default {
                     </div>
                 `).addTo(shoppingAreaGroup);
             });
-            // shoppingAreaGroup.addTo(map);
         })
         .catch( err => {
             console.log('error=' + err);
@@ -211,7 +250,8 @@ export default {
 
     // 單一鄉鎮區總人口
     // 抓取到的第一個就是我們目前選擇的district，因為抓回來是Object，讀取total
-    const getSinglePopulation = (single_district)=>  population.value.length >0 ? population.value.filter( element =>element.district == single_district)[0].total : 0;
+    // const getSinglePopulation = (single_district)=>  population.value.filter( element =>element.district == single_district)[0].total;
+    const getSinglePopulation = (single_district)=>  population.value.length > 0 ? population.value.filter( element =>element.district == single_district)[0].total : 0;
     
     const readDistrict = (map)=>{
         $.getJSON(
@@ -220,17 +260,12 @@ export default {
             value.features.forEach((element) => {
                 const single_population = getSinglePopulation(element.properties.TOWNNAME);
                 var bg_color = "#7efff5";
-                if(single_population > 400000){
-                    bg_color = "#ff3838";
-                }else if(single_population > 200000){
-                    bg_color = "#3742fa";
-                }else if(single_population > 100000){
-                    bg_color = "#fff200";
-                }else if(single_population > 50000){
-                    bg_color = "#c56cf0";
-                }else{
-                    bg_color = "#7efff5";
-                }
+                if(single_population > 400000){ bg_color = "#ff3838";}
+                else if(single_population > 200000){ bg_color = "#3742fa";}
+                else if(single_population > 100000){bg_color = "#fff200";}
+                else if(single_population > 50000){bg_color = "#c56cf0";}
+                else{bg_color = "#7efff5";}
+
                 L.geoJSON(element, {
                     style: {
                         fillColor: bg_color,
@@ -288,8 +323,8 @@ export default {
         }
     }
 
-    return { show_district, district, population, shopping_Area, is_Dialog, dialog_Info, view_Area,
-        getSinglePopulation, getGeoJSONTiles };
+    return { show_district, district, population, shopping_Area, is_View_Dialog, dialog_Info, is_Tourism_Dialog,
+        getSinglePopulation, getGeoJSONTiles, tourism_prop };
   }
 };
 </script>
