@@ -33,6 +33,11 @@ export default {
         ])
         const marker_Style = reactive([
             {name: "商圈", icon: "fas fa-shopping-bag"},
+            {name: "景點", icon: "fa fa-suitcase-rolling"},
+            {name: "特色美食", icon: "fa fa-utensils"},
+            {name: "火車站", icon: "fa fa-train"},
+            {name: "高鐵站", icon: "fa fa-subway"},
+            {name: "公車站牌", icon: "fa fa-bus"},
         ])
         return {lengend_Style, marker_Style}
     }

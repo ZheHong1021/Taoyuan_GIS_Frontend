@@ -1,6 +1,14 @@
 import Vuex from 'vuex';
 import L from 'leaflet';
+import moduleMap from './modules/map/index'
+import moduleMarker from './modules/marker/index'
+import moduleStation from './modules/station/index'
 const store = new Vuex.Store({//使用Vuex.Store 取得之
+  modules: {
+    module_Map: moduleMap,
+    module_Marker: moduleMarker,
+    module_Station: moduleStation,
+  },
   state: {
       map: null,
       hereApiKey: 'qcwHTsJura1qAf9AT75Nvl5DoolyvxQdAJmu-1wGTWQ', // 您的 HERE APIKEY

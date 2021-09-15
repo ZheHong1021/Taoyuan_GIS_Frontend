@@ -19,13 +19,29 @@
          <TourismData :tourism_prop="tourism_prop"/>
     </Dialog>
 
-    <div class="absolute top-3 right-36" style='z-index: 1003'>
+    <Dialog header="桃園交通工具" v-model:visible="is_Transport_Dialog"  :breakpoints="{'960px': '75vw', '640px': '100vw'}" :style="{width: '50vw'}">
+        <Transportation/>
+    </Dialog>
+
+
+
+
+    <div class="absolute top-3 right-36 flex flex-col" style='z-index: 1003'>
         <button class="text-white text-xl font-bold rounded px-4 py-2"
             :class="is_Tourism_Dialog ? 'bg-green-700' : 'bg-green-500'"
             @click="is_Tourism_Dialog = true">
-            觀光景點旅客數據
+            景點旅客數據
+        </button>
+        <button class="text-white text-xl font-bold rounded px-4 py-2 mt-2"
+            :class="is_Transport_Dialog ? 'bg-red-700' : 'bg-red-500'"
+            @click="is_Transport_Dialog = true">
+            交通資訊
         </button>
     </div>
+
+
+
+
 
 
     <!-- 區界 -->
@@ -52,11 +68,14 @@ import { onMounted, reactive, ref } from "vue";
 import DistrictPopup from "@/components/DistrictPopup";
 import Legend from "@/components/Legend";
 import TourismData from "@/components/TourismData";
+import Transportation from "@/components/Transportation";
 import 'leaflet.markercluster';
 import 'leaflet-fontawesome-markers'
 import "leaflet-fontawesome-markers/L.Icon.FontAwesome.css"
 import Dialog from 'primevue/dialog';
 import Taoyuan_view from '@/assets/Taoyuan_view.json';
+import {useStore} from 'vuex';
+import { get_Train_Station, get_Thsr_Station, get_Taoyuan_BusStop} from "../api/api.js"; 
 
 
 
@@ -67,8 +86,10 @@ export default {
     Dialog: Dialog,
     Legend: Legend,
     TourismData: TourismData,
+    Transportation: Transportation,
   },
   setup() {
+    //   預設
     const tourism_prop = reactive({
         type: 'bar',
         data: '門票收入',
@@ -81,6 +102,7 @@ export default {
     const shopping_Area = ref([]);
     const is_View_Dialog = ref(false);
     const is_Tourism_Dialog = ref(false);
+    const is_Transport_Dialog = ref(false);
     const dialog_Info = reactive({
         header: '',
         body: '',
@@ -94,7 +116,11 @@ export default {
     let shoppingAreaGroup = L.markerClusterGroup(); // 商圈群組
     let viewAreaGroup = L.markerClusterGroup(); // 景點群組
     let foodAreaGroup = L.markerClusterGroup(); // 特色美食群組
+    let TrainAreaGroup = L.markerClusterGroup(); // 特色美食群組
+    let ThsrAreaGroup = L.markerClusterGroup(); // 特色美食群組
+    let BusAreaGroup = L.markerClusterGroup(); // 特色美食群組
     var map = null;
+    const store = useStore();
 
 
 
@@ -135,12 +161,19 @@ export default {
             '商圈': shoppingAreaGroup,
             '景點': viewAreaGroup,
             '特色美食': foodAreaGroup,
+            '火車站': TrainAreaGroup,
+            '高鐵站': ThsrAreaGroup,
+            '公車站': BusAreaGroup,
         }
 
         L.control.layers(baseLayers, overlays, {
             collapsed: false
-        }).addTo(map);        
-        
+        }).addTo(map);
+
+        store.commit('module_Map/set_InitialMap', map);
+        await getTrain();
+        await getThsr();
+        await getBus();
         await getPopulation();
         await getView();
         await readDistrict(map); // 讀取鄉鎮區界線
@@ -148,6 +181,71 @@ export default {
 
     });
 
+
+    const getTrain = ()=>{
+     get_Train_Station().then((res)=>{
+        store.commit('module_Station/setTrainStation', res.data)
+        res.data.forEach((item)=>{
+            L.marker([item.StationPosition.PositionLat, item.StationPosition.PositionLon],{
+                icon: L.icon.fontAwesome({ 
+                    iconClasses: 'fa fa-train', // you _could_ add other icon classes, not tested.
+                    markerColor: '#3867d6',
+                    iconColor: '#ffffff',
+                    // use XY offsets to nudge positioning of icons, negative accepted
+                    iconXOffset: -1,
+                    iconYOffset: 0,
+                })
+            }).bindPopup(`
+                <h1 class = 'text-xl font-bold w-full bg-info'>${item.StationName.Zh_tw}火車站</h1>
+            `).addTo(TrainAreaGroup);
+        })
+        }).catch((err)=>{
+          console.log('連線異常:' + err);
+        });
+    }
+
+    const getThsr = ()=>{
+      get_Thsr_Station().then((res)=>{
+        store.commit('module_Station/setHighSpeedStation', res.data)
+        res.data.forEach((item)=>{
+            L.marker([item.StationPosition.PositionLat, item.StationPosition.PositionLon],{
+                icon: L.icon.fontAwesome({ 
+                    iconClasses: 'fa fa-subway', // you _could_ add other icon classes, not tested.
+                    markerColor: '#8854d0',
+                    iconColor: '#ffffff',
+                    // use XY offsets to nudge positioning of icons, negative accepted
+                    iconXOffset: -1,
+                    iconYOffset: 0,
+                })
+            }).bindPopup(`
+                <h1 class = 'text-xl font-bold w-full bg-info'>${item.StationName.Zh_tw}高鐵站</h1>
+            `).addTo(ThsrAreaGroup);
+         })
+      }).catch((err)=>{
+          console.log('連線異常:' + err);
+      });
+    }
+    const getBus = ()=>{
+      get_Taoyuan_BusStop().then((res)=>{
+          console.log(res.data);
+        res.data.forEach((item)=>{
+            L.marker([item.StopPosition.PositionLat, item.StopPosition.PositionLon],{
+                icon: L.icon.fontAwesome({ 
+                    iconClasses: 'fa fa-bus', // you _could_ add other icon classes, not tested.
+                    markerColor: '#16a085',
+                    iconColor: '#ffffff',
+                    // use XY offsets to nudge positioning of icons, negative accepted
+                    iconXOffset: -2,
+                    iconYOffset: 0,
+                })
+            }).bindPopup(`
+                <h1 class = 'text-xl font-bold w-full bg-info'>${item.StopName.Zh_tw}公車站</h1>
+            `).addTo(BusAreaGroup);
+         })
+      }).catch((err)=>{
+          console.log('連線異常:' + err);
+      });
+    }
 
     // 景點
     const getView = ()=>{
@@ -171,15 +269,15 @@ export default {
                 <p class = 'text-base font-bold w-full bg-info'>備註: ${item.Remarks}</p>
             `).addTo(viewAreaGroup);
         });
-        viewAreaGroup.addTo(map);
+        // viewAreaGroup.addTo(map);
     }
 
 
     
     // 人口數
     const getPopulation = () =>{
-        axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
-        // axios.get('http://127.0.0.1:8000/api/population')
+        // axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
+        axios.get('http://127.0.0.1:8000/api/population')
             .then(response => {
                 population.value = response.data.data;
             })
@@ -189,8 +287,8 @@ export default {
     }
 
     // 特色推薦美食
-    axios.get('https://arcane-citadel-34528.herokuapp.com/api/food_recommend')
-    // axios.get('http://127.0.0.1:8000/api/food_recommend')
+    // axios.get('https://arcane-citadel-34528.herokuapp.com/api/food_recommend')
+    axios.get('http://127.0.0.1:8000/api/food_recommend')
             .then(response => {
                 response.data.data.forEach((item)=>{
                     L.marker([item.latitude, item.longitude],{
@@ -219,8 +317,8 @@ export default {
         dialog_Info.body = content;
     };// 解決字串模板@click無效的問題
 
-    axios.get('https://arcane-citadel-34528.herokuapp.com/api/shopping')
-    // axios.get('http://127.0.0.1:8000/api/shopping')
+    // axios.get('https://arcane-citadel-34528.herokuapp.com/api/shopping')
+    axios.get('http://127.0.0.1:8000/api/shopping')
         .then(response => {
             shopping_Area.value = response.data.data;
             shopping_Area.value.forEach((area)=>{
@@ -323,7 +421,7 @@ export default {
         }
     }
 
-    return { show_district, district, population, shopping_Area, is_View_Dialog, dialog_Info, is_Tourism_Dialog,
+    return { show_district, district, population, shopping_Area, is_View_Dialog, dialog_Info, is_Tourism_Dialog, is_Transport_Dialog,
         getSinglePopulation, getGeoJSONTiles, tourism_prop };
   }
 };
