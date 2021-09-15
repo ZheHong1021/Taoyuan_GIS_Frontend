@@ -276,8 +276,8 @@ export default {
     
     // 人口數
     const getPopulation = () =>{
-        // axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
-        axios.get('http://127.0.0.1:8000/api/population')
+        axios.get('https://arcane-citadel-34528.herokuapp.com/api/population')
+        // axios.get('http://127.0.0.1:8000/api/population')
             .then(response => {
                 population.value = response.data.data;
             })
@@ -287,8 +287,8 @@ export default {
     }
 
     // 特色推薦美食
-    // axios.get('https://arcane-citadel-34528.herokuapp.com/api/food_recommend')
-    axios.get('http://127.0.0.1:8000/api/food_recommend')
+    axios.get('https://arcane-citadel-34528.herokuapp.com/api/food_recommend')
+    // axios.get('http://127.0.0.1:8000/api/food_recommend')
             .then(response => {
                 response.data.data.forEach((item)=>{
                     L.marker([item.latitude, item.longitude],{
@@ -317,8 +317,8 @@ export default {
         dialog_Info.body = content;
     };// 解決字串模板@click無效的問題
 
-    // axios.get('https://arcane-citadel-34528.herokuapp.com/api/shopping')
-    axios.get('http://127.0.0.1:8000/api/shopping')
+    axios.get('https://arcane-citadel-34528.herokuapp.com/api/shopping')
+    // axios.get('http://127.0.0.1:8000/api/shopping')
         .then(response => {
             shopping_Area.value = response.data.data;
             shopping_Area.value.forEach((area)=>{
